@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# This path points to your main.go file in the app directory
+cmd = "go build -o ./bin/app ./app/server.go"
+bin = "./bin/app"
+include_ext = ["go"]
+exclude_dir = ["vendor", "node_modules", "tmp"]
+full_bin = "./bin/app"
+
+[log]
+time = true
