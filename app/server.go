@@ -121,6 +121,12 @@ func handleConnection(conn net.Conn) {
 		resp.SetHeader("Content-Type", "text/plain")
 		resp.SetBody(echoStr)
 		conn.Write([]byte(resp.Build()))
+	} else if request.target == "/user-agent" {
+		resp := NewResponse("HTTP/1.1 200 OK")
+		respBody := request.headers["User-Agent"]
+		resp.SetHeader("Content-Type", "text/plain")
+		resp.SetBody(respBody)
+		conn.Write([]byte(resp.Build()))
 	} else if request.target == "/" {
 		resp := NewResponse("HTTP/1.1 200 OK")
 		conn.Write([]byte(resp.Build()))
