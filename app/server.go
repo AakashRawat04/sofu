@@ -25,14 +25,12 @@ func readRequest(rawRequest string) *Request {
 		return &Request{}
 	}
 
-	// Parse request line
 	requestLine := strings.Fields(lines[0])
 	if len(requestLine) != 3 {
 		fmt.Println("Bad request line")
 		return &Request{}
 	}
 
-	// Parse headers
 	headerMap := make(map[string]string)
 	for i := 1; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
@@ -54,8 +52,46 @@ func readRequest(rawRequest string) *Request {
 		target:  requestLine[1],
 		version: requestLine[2],
 		headers: headerMap,
-		body:    "", // No body yet
+		body:    "",
 	}
+}
+
+type Response struct {
+	status  string
+	headers map[string]string
+	body    string
+}
+
+func NewResponse(status string) *Response {
+	return &Response{
+		status:  status,
+		headers: make(map[string]string),
+		body:    "",
+	}
+}
+
+func (r *Response) SetHeader(key, value string) {
+	r.headers[key] = value
+}
+
+func (r *Response) SetBody(body string) {
+	r.body = body
+	r.SetHeader("Content-Length", strconv.Itoa(len(body)))
+}
+
+func (r *Response) Build() string {
+	var builder strings.Builder
+	builder.WriteString(r.status)
+	builder.WriteString("\r\n")
+	for key, value := range r.headers {
+		builder.WriteString(key)
+		builder.WriteString(": ")
+		builder.WriteString(value)
+		builder.WriteString("\r\n")
+	}
+	builder.WriteString("\r\n")
+	builder.WriteString(r.body)
+	return builder.String()
 }
 
 func handleConnection(conn net.Conn) {
@@ -70,9 +106,8 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error reading request: ", err)
 			return
 		}
-
 		rawRequest.WriteString(line)
-		if strings.TrimSpace(line) == "" { // End of headers
+		if strings.TrimSpace(line) == "" {
 			break
 		}
 	}
@@ -80,20 +115,18 @@ func handleConnection(conn net.Conn) {
 	request := readRequest(rawRequest.String())
 	fmt.Println("request constructed: ", request)
 
-	if request.target == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else if strings.HasPrefix(request.target, "/echo/") {
-		fmt.Println("Echo endpoint hit.. returning whatever is passed!")
+	if strings.HasPrefix(request.target, "/echo/") {
 		echoStr := strings.TrimPrefix(request.target, "/echo/")
-		contentLength := strconv.Itoa(len(echoStr))
-		response := "HTTP/1.1 200 OK\r\n" +
-			"Content-Type: text/plain\r\n" +
-			"Content-Length: " + contentLength + "\r\n" +
-			"\r\n" +
-			echoStr
-		conn.Write([]byte(response))
+		resp := NewResponse("HTTP/1.1 200 OK")
+		resp.SetHeader("Content-Type", "text/plain")
+		resp.SetBody(echoStr)
+		conn.Write([]byte(resp.Build()))
+	} else if request.target == "/" {
+		resp := NewResponse("HTTP/1.1 200 OK")
+		conn.Write([]byte(resp.Build()))
 	} else {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		resp := NewResponse("HTTP/1.1 404 Not Found")
+		conn.Write([]byte(resp.Build()))
 	}
 	conn.Close()
 }
@@ -108,15 +141,13 @@ func main() {
 
 	for {
 		fmt.Println("waiting for a connection")
-		// accept incoming requests
 		conn, err := l.Accept()
-		fmt.Println("got conenction: ", conn.RemoteAddr())
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-
-		fmt.Println("handling go functoin")
+		fmt.Println("got connection: ", conn.RemoteAddr())
+		fmt.Println("handling go function")
 		go handleConnection(conn)
 	}
 }
