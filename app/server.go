@@ -2,11 +2,16 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+)
+
+var (
+	directoryPtr *string
 )
 
 type Request struct {
@@ -127,6 +132,21 @@ func handleConnection(conn net.Conn) {
 		resp.SetHeader("Content-Type", "text/plain")
 		resp.SetBody(respBody)
 		conn.Write([]byte(resp.Build()))
+	} else if strings.HasPrefix(request.target, "/files/") {
+		filename := strings.TrimPrefix(request.target, "/files/")
+		filePath := *directoryPtr + "/" + filename
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			fmt.Println("File not found: ", err)
+			resp := NewResponse("HTTP/1.1 404 Not Found")
+			conn.Write([]byte(resp.Build()))
+		} else {
+			resp := NewResponse("HTTP/1.1 200 OK")
+			contentType := "application/octet-stream"
+			resp.SetHeader("Content-Type", contentType)
+			resp.SetBody(string(data))
+			conn.Write([]byte(resp.Build()))
+		}
 	} else if request.target == "/" {
 		resp := NewResponse("HTTP/1.1 200 OK")
 		conn.Write([]byte(resp.Build()))
@@ -143,6 +163,9 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
+	directoryPtr = flag.String("directory", "servefiles", "files to serve")
+	flag.Parse()
+	println("directory for serving files set to: ", *directoryPtr)
 	defer l.Close()
 
 	for {
