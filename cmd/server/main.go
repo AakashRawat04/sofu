@@ -15,6 +15,7 @@ func main() {
 
 	server.GET("/echo/:message", func(c *sofu.Context) {
 		message := c.Param("message")
+		c.SetHeader("Content-Type", "text/plain")
 		c.String(200, message)
 	})
 
@@ -23,6 +24,7 @@ func main() {
 		if userAgent == "" {
 			c.String(400, "User-Agent header missing")
 		} else {
+			c.SetHeader("Content-Type", "text/plain")
 			c.String(200, userAgent)
 		}
 	})
@@ -33,6 +35,7 @@ func main() {
 		if err != nil {
 			c.String(404, "Not Found")
 		} else {
+			c.SetHeader("Content-Type", "application/octet-stream")
 			c.String(200, string(data))
 		}
 	})

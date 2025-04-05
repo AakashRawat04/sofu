@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type Context struct {
 	Conn    net.Conn
 	Request *Request
 	writer  *bufio.Writer
+	headers map[string]string // Store custom headers
 }
 
 type Request struct {
@@ -26,13 +28,38 @@ func NewContext(conn net.Conn) *Context {
 		Conn:    conn,
 		Request: &Request{Headers: make(map[string]string), Params: make(map[string]string)},
 		writer:  bufio.NewWriter(conn),
+		headers: make(map[string]string),
 	}
 }
 
+// SetHeader adds or updates a header in the response
+func (c *Context) SetHeader(key, value string) {
+	c.headers[key] = value
+}
+
+// String sends a response with the given status code and body
 func (c *Context) String(status int, body string) {
 	statusLine := "HTTP/1.1 " + strconv.Itoa(status) + " " + statusText(status) + "\r\n"
-	headers := "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(body)) + "\r\n\r\n"
-	c.writer.WriteString(statusLine + headers + body)
+
+	// Default Content-Length if not set
+	if _, ok := c.headers["Content-Length"]; !ok {
+		c.headers["Content-Length"] = strconv.Itoa(len(body))
+	}
+
+	// Build headers
+	var headerStr strings.Builder
+	for key, value := range c.headers {
+		headerStr.WriteString(key)
+		headerStr.WriteString(": ")
+		headerStr.WriteString(value)
+		headerStr.WriteString("\r\n")
+	}
+	headerStr.WriteString("\r\n")
+
+	// Write response
+	c.writer.WriteString(statusLine)
+	c.writer.WriteString(headerStr.String())
+	c.writer.WriteString(body)
 	c.writer.Flush()
 }
 
