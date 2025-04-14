@@ -2,7 +2,6 @@ package sofu
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -44,25 +43,25 @@ func (c *Context) SetHeader(key, value string) {
 func (c *Context) String(status int, body string) {
 	statusLine := "HTTP/1.1 " + strconv.Itoa(status) + " " + statusText(status) + "\r\n"
 
-	// Default Content-Length if not set
-	if _, ok := c.headers["Content-Length"]; !ok {
-		c.headers["Content-Length"] = strconv.Itoa(len(body))
+	// Set default headers if not already set
+	if _, ok := c.headers[HeaderContentType]; !ok {
+		c.headers[HeaderContentType] = ContentTypeTextPlain
+	}
+
+	if _, ok := c.headers[HeaderContentLength]; !ok {
+		c.headers[HeaderContentLength] = strconv.Itoa(len(body))
 	}
 
 	var responseBody = body
-	if compressionScheme, ok := c.Request.Headers["Accept-Encoding"]; ok {
-		fmt.Println("Compression scheme:", compressionScheme)
-		compressedBody, compressionError := compressions.HandleCompression(compressionScheme, body)
-		if compressionError != nil {
-			c.writer.WriteString("Error: " + compressionError.Error())
-			c.writer.Flush()
-			return
+	if acceptEncoding, ok := c.Request.Headers[HeaderAcceptEncoding]; ok {
+		compressedBody, encoding := compressions.HandleCompression(acceptEncoding, body)
+
+		// Only set Content-Encoding if compression was applied
+		if encoding != "" {
+			responseBody = compressedBody
+			c.SetHeader(HeaderContentLength, strconv.Itoa(len(compressedBody)))
+			c.SetHeader(HeaderContentEncoding, encoding)
 		}
-		fmt.Println("Compressed body:", compressedBody)
-		responseBody = compressedBody
-		c.SetHeader("Content-Length", strconv.Itoa(len(compressedBody)))
-		c.SetHeader("Content-Encoding", compressionScheme)
-		fmt.Println("Headers after compression:", c.headers)
 	}
 
 	// Build headers
@@ -78,9 +77,6 @@ func (c *Context) String(status int, body string) {
 	// Write response
 	c.writer.WriteString(statusLine)
 	c.writer.WriteString(headerStr.String())
-	fmt.Println("Headers:", c.headers)
-	fmt.Println("checking compression scheme")
-
 	c.writer.WriteString(responseBody)
 	c.writer.Flush()
 }

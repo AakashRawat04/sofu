@@ -34,12 +34,6 @@ const (
 	ContentTypeApplicationOctetStream = "application/octet-stream"
 )
 
-// Constants for common compression schemes
-const (
-	CompressionGzip    = "gzip"
-	CompressionDeflate = "deflate"
-)
-
 // Constants for common HTTP status messages
 const (
 	StatusMessageOK                  = "OK"
