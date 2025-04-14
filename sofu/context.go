@@ -2,6 +2,7 @@ package sofu
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -48,6 +49,22 @@ func (c *Context) String(status int, body string) {
 		c.headers["Content-Length"] = strconv.Itoa(len(body))
 	}
 
+	var responseBody = body
+	if compressionScheme, ok := c.Request.Headers["Accept-Encoding"]; ok {
+		fmt.Println("Compression scheme:", compressionScheme)
+		compressedBody, compressionError := compressions.HandleCompression(compressionScheme, body)
+		if compressionError != nil {
+			c.writer.WriteString("Error: " + compressionError.Error())
+			c.writer.Flush()
+			return
+		}
+		fmt.Println("Compressed body:", compressedBody)
+		responseBody = compressedBody
+		c.SetHeader("Content-Length", strconv.Itoa(len(compressedBody)))
+		c.SetHeader("Content-Encoding", compressionScheme)
+		fmt.Println("Headers after compression:", c.headers)
+	}
+
 	// Build headers
 	var headerStr strings.Builder
 	for key, value := range c.headers {
@@ -61,19 +78,10 @@ func (c *Context) String(status int, body string) {
 	// Write response
 	c.writer.WriteString(statusLine)
 	c.writer.WriteString(headerStr.String())
-	if compressionScheme, ok := c.headers["Accept-Encoding"]; ok {
-		compressedBody, compressionError := compressions.HandleCompression(compressionScheme, body)
-		if compressionError != nil {
-			c.writer.WriteString("Error: " + compressionError.Error())
-			c.writer.Flush()
-			return
-		}
-		c.writer.WriteString(compressedBody)
-		c.SetHeader("Content-Length", strconv.Itoa(len(compressedBody)))
-		c.SetHeader("Content-Encoding", compressionScheme)
-	} else {
-		c.writer.WriteString(body)
-	}
+	fmt.Println("Headers:", c.headers)
+	fmt.Println("checking compression scheme")
+
+	c.writer.WriteString(responseBody)
 	c.writer.Flush()
 }
 
