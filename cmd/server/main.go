@@ -40,5 +40,17 @@ func main() {
 		}
 	})
 
+	server.POST("/files/:filename", func(c *sofu.Context) {
+		filename := c.Param("filename")
+		data := c.Request.Body
+		err := os.WriteFile(server.Directory+"/"+filename, []byte(data), 0644)
+		if err != nil {
+			c.String(500, "Internal Server Error")
+		} else {
+			c.SetHeader("Content-Type", "text/plain")
+			c.String(200, "Created")
+		}
+	})
+
 	server.Start("0.0.0.0:4221")
 }

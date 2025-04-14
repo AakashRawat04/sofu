@@ -1,17 +1,13 @@
 package compressions
 
 import (
+	"slices"
 	"strings"
 )
 
 // IsSupported checks if the given compression scheme is supported
 func IsSupported(scheme string) bool {
-	for _, supported := range SupportedCompressionSchemes {
-		if scheme == supported {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(SupportedCompressionSchemes, scheme)
 }
 
 // HandleCompression processes Accept-Encoding header and returns compressed data and used scheme
