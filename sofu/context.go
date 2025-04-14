@@ -5,6 +5,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/codecrafters-http-server-go/sofu/compressions"
 )
 
 type Context struct {
@@ -59,7 +61,19 @@ func (c *Context) String(status int, body string) {
 	// Write response
 	c.writer.WriteString(statusLine)
 	c.writer.WriteString(headerStr.String())
-	c.writer.WriteString(body)
+	if compressionScheme, ok := c.headers["Accept-Encoding"]; ok {
+		compressedBody, compressionError := compressions.HandleCompression(compressionScheme, body)
+		if compressionError != nil {
+			c.writer.WriteString("Error: " + compressionError.Error())
+			c.writer.Flush()
+			return
+		}
+		c.writer.WriteString(compressedBody)
+		c.SetHeader("Content-Length", strconv.Itoa(len(compressedBody)))
+		c.SetHeader("Content-Encoding", compressionScheme)
+	} else {
+		c.writer.WriteString(body)
+	}
 	c.writer.Flush()
 }
 

@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"net"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -59,26 +57,5 @@ func readRequest(c *Context, reader *bufio.Reader) {
 				c.Request.Body = string(bodyBytes)
 			}
 		}
-	}
-}
-
-func Handle(conn net.Conn, directory string) {
-	defer conn.Close()
-	c := NewContext(conn)
-	readRequest(c, bufio.NewReader(conn))
-
-	// Temporary routing until we add the router
-	if c.Request.Method == "GET" && c.Request.Path == "/" {
-		c.String(200, "")
-	} else if c.Request.Method == "GET" && strings.HasPrefix(c.Request.Path, "/files/") {
-		filename := strings.TrimPrefix(c.Request.Path, "/files/")
-		data, err := os.ReadFile(directory + "/" + filename)
-		if err != nil {
-			c.String(404, "Not Found")
-		} else {
-			c.String(200, string(data))
-		}
-	} else {
-		c.String(404, "Not Found")
 	}
 }
