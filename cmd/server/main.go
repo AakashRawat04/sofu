@@ -48,7 +48,7 @@ func main() {
 			c.String(500, "Internal Server Error")
 		} else {
 			c.SetHeader("Content-Type", "text/plain")
-			c.String(200, "Created")
+			c.String(201, "Created")
 		}
 	})
 
