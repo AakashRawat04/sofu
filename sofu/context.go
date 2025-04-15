@@ -1,19 +1,16 @@
 package sofu
 
 import (
-	"bufio"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
-
-	"github.com/codecrafters-io/codecrafters-http-server-go/sofu/compressions"
 )
 
 type Context struct {
 	Conn    net.Conn
 	Request *Request
-	writer  *bufio.Writer
-	headers map[string]string // Store custom headers
+	headers map[string]string // Store response headers
 }
 
 type Request struct {
@@ -29,7 +26,6 @@ func NewContext(conn net.Conn) *Context {
 	return &Context{
 		Conn:    conn,
 		Request: &Request{Headers: make(map[string]string), Params: make(map[string]string)},
-		writer:  bufio.NewWriter(conn),
 		headers: make(map[string]string),
 	}
 }
@@ -39,63 +35,62 @@ func (c *Context) SetHeader(key, value string) {
 	c.headers[key] = value
 }
 
-// String sends a response with the given status code and body
-func (c *Context) String(status int, body string) {
-	statusLine := "HTTP/1.1 " + strconv.Itoa(status) + " " + statusText(status) + "\r\n"
-
-	// Set default headers if not already set
-	if _, ok := c.headers[HeaderContentType]; !ok {
-		c.headers[HeaderContentType] = ContentTypeTextPlain
+// WriteResponse sends an HTTP response with the given status code and body
+func (c *Context) WriteResponse(statusCode int, body string) {
+	statusMessage, ok := StatusText[statusCode]
+	if !ok {
+		statusMessage = "Unknown"
 	}
 
 	if _, ok := c.headers[HeaderContentLength]; !ok {
 		c.headers[HeaderContentLength] = strconv.Itoa(len(body))
 	}
 
-	var responseBody = body
-	if acceptEncoding, ok := c.Request.Headers[HeaderAcceptEncoding]; ok {
-		compressedBody, encoding := compressions.HandleCompression(acceptEncoding, body)
-
-		// Only set Content-Encoding if compression was applied
-		if encoding != "" {
-			responseBody = compressedBody
-			c.SetHeader(HeaderContentLength, strconv.Itoa(len(compressedBody)))
-			c.SetHeader(HeaderContentEncoding, encoding)
-		}
+	if _, ok := c.headers[HeaderContentType]; !ok {
+		c.headers[HeaderContentType] = ContentTypeTextPlain
 	}
 
-	// Build headers
-	var headerStr strings.Builder
+	// Check if client requested connection close
+	if closeConn, ok := c.Request.Headers["Connection"]; ok && strings.ToLower(closeConn) == "close" {
+		c.headers["Connection"] = "close"
+	}
+
+	response := fmt.Sprintf("%s %d %s\r\n", HTTPVersion1_1, statusCode, statusMessage)
+
 	for key, value := range c.headers {
-		headerStr.WriteString(key)
-		headerStr.WriteString(": ")
-		headerStr.WriteString(value)
-		headerStr.WriteString("\r\n")
+		response += fmt.Sprintf("%s: %s\r\n", key, value)
 	}
-	headerStr.WriteString("\r\n")
 
-	// Write response
-	c.writer.WriteString(statusLine)
-	c.writer.WriteString(headerStr.String())
-	c.writer.WriteString(responseBody)
-	c.writer.Flush()
+	response += "\r\n" + body
+
+	c.Conn.Write([]byte(response))
 }
 
+// Helper method for common status OK responses
+func (c *Context) String(statusCode int, body string) {
+	c.WriteResponse(statusCode, body)
+}
+
+func (c *Context) ShouldCloseConnection() bool {
+	// Check HTTP version - HTTP/1.0 defaults to non-persistent
+	if c.Request.Version == HTTPVersion1_0 {
+		// But Connection: keep-alive can override this
+		if keepAlive, ok := c.Request.Headers["Connection"]; ok && strings.ToLower(keepAlive) == "keep-alive" {
+			return false
+		}
+		return true
+	}
+
+	// HTTP/1.1 defaults to persistent connections
+	// But Connection: close can override this
+	if closeConn, ok := c.Request.Headers["Connection"]; ok && strings.ToLower(closeConn) == "close" {
+		return true
+	}
+
+	return false
+}
+
+// Helper method to get a parameter from the request
 func (c *Context) Param(key string) string {
 	return c.Request.Params[key]
-}
-
-func statusText(status int) string {
-	switch status {
-	case 200:
-		return "OK"
-	case 201:
-		return "Created"
-	case 404:
-		return "Not Found"
-	case 400:
-		return "Bad Request"
-	default:
-		return "Unknown"
-	}
 }

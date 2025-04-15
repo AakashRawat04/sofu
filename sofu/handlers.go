@@ -2,6 +2,7 @@ package sofu
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -10,44 +11,50 @@ import (
 
 type HandlerFunc func(*Context)
 
-func readRequest(c *Context, reader *bufio.Reader) {
-	var rawRequest strings.Builder
+func readRequest(c *Context, reader *bufio.Reader) error {
+	// Read the request line
+	requestLine, err := reader.ReadString('\n')
+	if err != nil {
+		if err == io.EOF {
+			return err // Connection closed
+		}
+		fmt.Println("Error reading request line:", err)
+		return err
+	}
+
+	// Parse the request line
+	parts := strings.Fields(strings.TrimSpace(requestLine))
+	if len(parts) != 3 {
+		return errors.New("invalid request line")
+	}
+
+	c.Request.Method = parts[0]
+	c.Request.Path = parts[1]
+	c.Request.Version = parts[2]
+
+	// Read headers
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("Error reading request:", err)
-			return
+			return err
 		}
-		rawRequest.WriteString(line)
-		if strings.TrimSpace(line) == "" {
-			break
-		}
-	}
 
-	lines := strings.Split(rawRequest.String(), "\r\n")
-	if len(lines) < 1 {
-		return
-	}
-	requestLine := strings.Fields(lines[0])
-	if len(requestLine) != 3 {
-		return
-	}
-
-	c.Request.Method = requestLine[0]
-	c.Request.Path = requestLine[1]
-	c.Request.Version = requestLine[2]
-
-	for i := 1; i < len(lines); i++ {
-		line := strings.TrimSpace(lines[i])
+		line = strings.TrimSpace(line)
 		if line == "" {
-			break
+			break // End of headers
 		}
-		pair := strings.SplitN(line, ":", 2)
-		if len(pair) == 2 {
-			c.Request.Headers[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
+
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			continue // Invalid header
 		}
+
+		headerName := strings.TrimSpace(parts[0])
+		headerValue := strings.TrimSpace(parts[1])
+		c.Request.Headers[headerName] = headerValue
 	}
 
+	// Read body if Content-Length is present
 	if lengthStr, ok := c.Request.Headers["Content-Length"]; ok {
 		length, err := strconv.Atoi(lengthStr)
 		if err == nil && length > 0 {
@@ -58,4 +65,6 @@ func readRequest(c *Context, reader *bufio.Reader) {
 			}
 		}
 	}
+
+	return nil
 }

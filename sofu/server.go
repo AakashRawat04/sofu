@@ -43,9 +43,25 @@ func (s *Server) Start(addr string) {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
-	c := NewContext(conn)
-	readRequest(c, bufio.NewReader(conn))
-	s.Router.Handle(c)
+	reader := bufio.NewReader(conn)
+
+	for {
+		c := NewContext(conn)
+
+		// Read and parse the HTTP request
+		if err := readRequest(c, reader); err != nil {
+			// Connection closed or error reading request
+			break
+		}
+
+		// Handle the request
+		s.Router.Handle(c)
+
+		// Check if we should close the connection
+		if c.ShouldCloseConnection() {
+			break
+		}
+	}
 }
 
 func (s *Server) GET(path string, handler HandlerFunc) {

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/codecrafters-io/codecrafters-http-server-go/sofu"
 )
@@ -9,48 +12,56 @@ import (
 func main() {
 	server := sofu.New()
 
+	// Register routes
 	server.GET("/", func(c *sofu.Context) {
-		c.String(200, "")
-	})
-
-	server.GET("/echo/:message", func(c *sofu.Context) {
-		message := c.Param("message")
-		c.SetHeader("Content-Type", "text/plain")
-		c.String(200, message)
+		c.WriteResponse(sofu.StatusOK, "")
 	})
 
 	server.GET("/user-agent", func(c *sofu.Context) {
 		userAgent := c.Request.Headers["User-Agent"]
-		if userAgent == "" {
-			c.String(400, "User-Agent header missing")
-		} else {
-			c.SetHeader("Content-Type", "text/plain")
-			c.String(200, userAgent)
-		}
+		c.WriteResponse(sofu.StatusOK, userAgent)
+	})
+
+	server.GET("/echo/:message", func(c *sofu.Context) {
+		message := c.Param("message")
+		c.WriteResponse(sofu.StatusOK, message)
 	})
 
 	server.GET("/files/:filename", func(c *sofu.Context) {
 		filename := c.Param("filename")
-		data, err := os.ReadFile(server.Directory + "/" + filename)
+		filePath := filepath.Join(server.Directory, filename)
+
+		content, err := os.ReadFile(filePath)
 		if err != nil {
-			c.String(404, "Not Found")
-		} else {
-			c.SetHeader("Content-Type", "application/octet-stream")
-			c.String(200, string(data))
+			c.WriteResponse(sofu.StatusNotFound, "File not found")
+			return
 		}
+
+		contentType := sofu.ContentTypeApplicationOctetStream
+		if strings.HasSuffix(filename, ".txt") {
+			contentType = sofu.ContentTypeTextPlain
+		} else if strings.HasSuffix(filename, ".html") {
+			contentType = sofu.ContentTypeTextHTML
+		}
+
+		c.SetHeader(sofu.HeaderContentType, contentType)
+		c.SetHeader(sofu.HeaderContentLength, fmt.Sprintf("%d", len(content)))
+		c.WriteResponse(sofu.StatusOK, string(content))
 	})
 
 	server.POST("/files/:filename", func(c *sofu.Context) {
 		filename := c.Param("filename")
-		data := c.Request.Body
-		err := os.WriteFile(server.Directory+"/"+filename, []byte(data), 0644)
+		filePath := filepath.Join(server.Directory, filename)
+
+		err := os.WriteFile(filePath, []byte(c.Request.Body), 0644)
 		if err != nil {
-			c.String(500, "Internal Server Error")
-		} else {
-			c.SetHeader("Content-Type", "text/plain")
-			c.String(201, "Created")
+			c.WriteResponse(sofu.StatusInternalServerError, "Failed to save file")
+			return
 		}
+
+		c.WriteResponse(sofu.StatusCreated, "")
 	})
 
-	server.Start("0.0.0.0:4221")
+	// Start the server
+	server.Start(":4221")
 }

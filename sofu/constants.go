@@ -3,9 +3,17 @@ package sofu
 // Constants for HTTP status codes
 const (
 	StatusOK                  = 200
+	StatusCreated             = 201
+	StatusNoContent           = 204
 	StatusBadRequest          = 400
+	StatusUnauthorized        = 401
+	StatusForbidden           = 403
 	StatusNotFound            = 404
+	StatusMethodNotAllowed    = 405
 	StatusInternalServerError = 500
+	StatusNotImplemented      = 501
+	StatusBadGateway          = 502
+	StatusServiceUnavailable  = 503
 )
 
 // Constants for HTTP methods
@@ -24,6 +32,7 @@ const (
 	HeaderUserAgent       = "User-Agent"
 	HeaderAcceptEncoding  = "Accept-Encoding"
 	HeaderContentEncoding = "Content-Encoding"
+	HeaderConnection      = "Connection"
 )
 
 // Constants for common Content Types
@@ -34,13 +43,21 @@ const (
 	ContentTypeApplicationOctetStream = "application/octet-stream"
 )
 
-// Constants for common HTTP status messages
-const (
-	StatusMessageOK                  = "OK"
-	StatusMessageBadRequest          = "Bad Request"
-	StatusMessageNotFound            = "Not Found"
-	StatusMessageInternalServerError = "Internal Server Error"
-)
+// Map of status codes to their respective messages
+var StatusText = map[int]string{
+	StatusOK:                  "OK",
+	StatusCreated:             "Created",
+	StatusNoContent:           "No Content",
+	StatusBadRequest:          "Bad Request",
+	StatusUnauthorized:        "Unauthorized",
+	StatusForbidden:           "Forbidden",
+	StatusNotFound:            "Not Found",
+	StatusMethodNotAllowed:    "Method Not Allowed",
+	StatusInternalServerError: "Internal Server Error",
+	StatusNotImplemented:      "Not Implemented",
+	StatusBadGateway:          "Bad Gateway",
+	StatusServiceUnavailable:  "Service Unavailable",
+}
 
 // Constants for common HTTP version
 const (
