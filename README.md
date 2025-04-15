@@ -1,5 +1,8 @@
 [![progress-banner](https://backend.codecrafters.io/progress/http-server/d149aba3-35f0-4522-b661-07f058fd7808)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
+![image](https://github.com/user-attachments/assets/3710a962-564f-4208-8400-0bbed6b8f665)
+
+
 # Sofu HTTP Server Framework
 
 Sofu is a lightweight, flexible HTTP server framework for Go that makes it easy to build web applications and APIs. Built as part of the CodeCrafters HTTP server challenge, Sofu provides a clean, intuitive interface for handling HTTP requests.
