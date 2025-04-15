@@ -5,6 +5,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/codecrafters-http-server-go/sofu/compressions"
 )
 
 type Context struct {
@@ -50,6 +52,19 @@ func (c *Context) WriteResponse(statusCode int, body string) {
 		c.headers[HeaderContentType] = ContentTypeTextPlain
 	}
 
+	// handle compression
+	var responseBody = body
+	if acceptEncoding, ok := c.Request.Headers[HeaderAcceptEncoding]; ok {
+		compressedBody, encoding := compressions.HandleCompression(acceptEncoding, body)
+
+		// Only set Content-Encoding if compression was applied
+		if encoding != "" {
+			responseBody = compressedBody
+			c.SetHeader(HeaderContentLength, strconv.Itoa(len(compressedBody)))
+			c.SetHeader(HeaderContentEncoding, encoding)
+		}
+	}
+
 	// Check if client requested connection close
 	if closeConn, ok := c.Request.Headers["Connection"]; ok && strings.ToLower(closeConn) == "close" {
 		c.headers["Connection"] = "close"
@@ -61,7 +76,7 @@ func (c *Context) WriteResponse(statusCode int, body string) {
 		response += fmt.Sprintf("%s: %s\r\n", key, value)
 	}
 
-	response += "\r\n" + body
+	response += "\r\n" + responseBody
 
 	c.Conn.Write([]byte(response))
 }

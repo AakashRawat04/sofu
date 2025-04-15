@@ -11,7 +11,7 @@ func IsSupported(scheme string) bool {
 }
 
 // HandleCompression processes Accept-Encoding header and returns compressed data and used scheme
-func HandleCompression(acceptEncoding string, data string) (string, string) {
+func HandleCompression(acceptEncoding string, data string) (compressedData string, scheme string) {
 	schemes := parseAcceptEncoding(acceptEncoding)
 
 	for _, scheme := range schemes {
