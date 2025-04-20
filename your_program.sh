@@ -2,23 +2,19 @@
 #
 # Use this script to run your program LOCALLY.
 #
-# Note: Changing this script WILL NOT affect how CodeCrafters runs your program.
-#
-# Learn more: https://codecrafters.io/program-interface
 
 set -e # Exit early if any commands fail
+echo "Running your program locally..."
 
-# Copied from .codecrafters/compile.sh
-#
-# - Edit this to change how your program compiles locally
-# - Edit .codecrafters/compile.sh to change how your program compiles remotely
+# Create a local tmp directory if it doesn't exist
+SCRIPT_DIR="$(dirname "$0")"
+LOCAL_TMP="${SCRIPT_DIR}/tmp"
+mkdir -p "${LOCAL_TMP}"
+
 (
-  cd "$(dirname "$0")" # Ensure compile steps are run within the repository directory
-  go build -o /tmp/codecrafters-build-http-server-go ./cmd/server
+  cd "${SCRIPT_DIR}" # Ensure compile steps are run within the repository directory
+  go build -o "${LOCAL_TMP}/sofuserver" ./cmd/server
 )
 
-# Copied from .codecrafters/run.sh
-#
-# - Edit this to change how your program runs locally
-# - Edit .codecrafters/run.sh to change how your program runs remotely
-exec /tmp/codecrafters-build-http-server-go "$@"
+
+exec "${LOCAL_TMP}/sofuserver" "$@"
