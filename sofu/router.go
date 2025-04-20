@@ -18,6 +18,14 @@ func (r *Router) POST(path string, handler HandlerFunc) {
 	r.addRoute("POST", path, handler)
 }
 
+func (r *Router) PUT(path string, handler HandlerFunc) {
+	r.addRoute("PUT", path, handler)
+}
+
+func (r *Router) DELETE(path string, handler HandlerFunc) {
+	r.addRoute("DELETE", path, handler)
+}
+
 func (r *Router) addRoute(method, path string, handler HandlerFunc) {
 	if r.routes[method] == nil {
 		r.routes[method] = make(map[string]HandlerFunc)

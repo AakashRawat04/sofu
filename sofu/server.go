@@ -71,3 +71,11 @@ func (s *Server) GET(path string, handler HandlerFunc) {
 func (s *Server) POST(path string, handler HandlerFunc) {
 	s.Router.POST(path, handler)
 }
+
+func (s *Server) PUT(path string, handler HandlerFunc) {
+	s.Router.PUT(path, handler)
+}
+
+func (s *Server) DELETE(path string, handler HandlerFunc) {
+	s.Router.DELETE(path, handler)
+}
