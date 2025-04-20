@@ -21,7 +21,7 @@ Sofu is a lightweight, flexible HTTP server framework for Go that makes it easy 
 ## Installation
 
 ```bash
-go get github.com/codecrafters-io/codecrafters-http-server-go
+go get github.com/AakashRawat04/sofu
 ```
 
 ## Quick Start
@@ -29,7 +29,7 @@ go get github.com/codecrafters-io/codecrafters-http-server-go
 ```go
 package main
 
-import "github.com/codecrafters-io/codecrafters-http-server-go/sofu"
+import "github.com/AakashRawat04/sofu/sofu"
 
 func main() {
     // Create a new server instance

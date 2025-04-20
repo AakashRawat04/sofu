@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codecrafters-io/codecrafters-http-server-go/sofu"
+	"github.com/AakashRawat04/sofu/sofu"
 )
 
 func main() {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codecrafters-io/codecrafters-http-server-go/sofu/compressions"
+	"github.com/AakashRawat04/sofu/sofu/compressions"
 )
 
 type Context struct {
